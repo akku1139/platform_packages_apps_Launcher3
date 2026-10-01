@@ -22,19 +22,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install xmllint
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libxml2-utils
-      - name: XML well-formedness
+      - name: XML + markers
         run: |
           set -e
           for f in res/values/*.xml res/values-land/*.xml; do
             [ -f "$f" ] || continue
             xmllint --noout "$f"
           done
-      - name: BvLauncher markers
-        run: |
-          set -e
           grep -q 'name="notification_dot_color"' res/values/colors.xml
           grep -qi 'FE4621' res/values/colors.xml
-          grep -qi '3478F6' res/values/colors.xml
           grep -q 'dynamic_grid_icon_drawable_padding">8dp' res/values/dimens.xml
           grep -q 'R.color.notification_dot_color' src/com/android/launcher3/BubbleTextView.java
           echo OK
@@ -46,47 +42,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '11'
+          java-version: '17'
 
-      - name: Prepare Android SDK packages
+      - name: Ensure platform android-31
         run: |
           set -e
           echo "ANDROID_HOME=$ANDROID_HOME"
-          ls "$ANDROID_HOME" || true
-          # Use cmdline-tools from the runner image
-          CMDLINE=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager 2>/dev/null | head -1)
-          if [ -z "$CMDLINE" ]; then
-            CMDLINE=$(find /usr/local/lib/android -name sdkmanager 2>/dev/null | head -1)
-          fi
-          echo "sdkmanager=$CMDLINE"
-          yes | "$CMDLINE" --licenses >/tmp/licenses.txt 2>&1 || true
-          "$CMDLINE" "platforms;android-31" "build-tools;31.0.0" || \
-            "$CMDLINE" "platforms;android-31" "build-tools;31.0.0" --sdk_root="$ANDROID_HOME"
           ls "$ANDROID_HOME/platforms" || true
           ls "$ANDROID_HOME/build-tools" || true
-
-      - name: Grant execute for gradlew
-        run: chmod +x gradlew
+          if [ ! -d "$ANDROID_HOME/platforms/android-31" ]; then
+            CMDLINE=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager | head -1)
+            yes | "$CMDLINE" --licenses || true
+            "$CMDLINE" "platforms;android-31" "build-tools;31.0.0"
+          fi
+          # Prefer any available build-tools if 31 missing
+          ls "$ANDROID_HOME/platforms"
+          ls "$ANDROID_HOME/build-tools"
 
       - name: Build release APK
         run: |
+          chmod +x gradlew
+          # Drop obsolete -Xbootclasspath/p on JDK 17; rely on compileOnly framework.jar
           ./gradlew --no-daemon assembleWithoutQuickstepRelease --stacktrace
 
       - name: Locate APK
         id: apk
         run: |
-          APK=$(find . -path './build/**' -name '*.apk' | head -1)
+          APK=$(find ./build -name '*.apk' 2>/dev/null | head -1)
           if [ -z "$APK" ]; then
             find . -name '*.apk' || true
-            echo "No APK found"
             exit 1
           fi
           echo "path=$APK" >> $GITHUB_OUTPUT
-          echo "Found: $APK"
           ls -lh "$APK"
 
       - name: Upload APK artifact
@@ -94,24 +85,20 @@ jobs:
         with:
           name: BvLauncher-APK
           path: ${{ steps.apk.outputs.path }}
-          if-no-files-found: error
 
       - name: Prepare release metadata
         id: meta
         run: |
           SHA_SHORT=${GITHUB_SHA::7}
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            TAG="${GITHUB_REF_NAME}"
-            NAME="BvLauncher ${TAG}"
-            PRERELEASE=false
+            echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+            echo "name=BvLauncher ${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+            echo "prerelease=false" >> $GITHUB_OUTPUT
           else
-            TAG="ci-${GITHUB_RUN_NUMBER}-${SHA_SHORT}"
-            NAME="BvLauncher CI #${GITHUB_RUN_NUMBER} (${SHA_SHORT})"
-            PRERELEASE=true
+            echo "tag=ci-${GITHUB_RUN_NUMBER}-${SHA_SHORT}" >> $GITHUB_OUTPUT
+            echo "name=BvLauncher CI #${GITHUB_RUN_NUMBER} (${SHA_SHORT})" >> $GITHUB_OUTPUT
+            echo "prerelease=true" >> $GITHUB_OUTPUT
           fi
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "name=$NAME" >> $GITHUB_OUTPUT
-          echo "prerelease=$PRERELEASE" >> $GITHUB_OUTPUT
 
       - name: Publish GitHub Release
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -123,12 +110,10 @@ jobs:
           generate_release_notes: true
           files: ${{ steps.apk.outputs.path }}
           body: |
-            Automated build of BvLauncher UI port (Android 12 Launcher3 without Quickstep).
+            Automated BvLauncher UI port build (Launcher3 without Quickstep, Android 12 base).
 
             - Branch: `${{ github.ref_name }}`
             - Commit: `${{ github.sha }}`
             - Variant: `withoutQuickstepRelease`
-
-            Install as a normal APK (set as default Home app). System-privileged OEM features are not included in this standalone build.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

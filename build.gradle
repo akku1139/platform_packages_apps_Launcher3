@@ -109,11 +109,3 @@ protobuf {
     }
 }
 
-gradle.projectsEvaluated {
-    tasks.withType(JavaCompile).configureEach {
-        def frameworkJar = file("${rootDir}/prebuilts/libs/framework.jar")
-        if (frameworkJar.exists()) {
-            options.compilerArgs.add("-Xbootclasspath/p:${frameworkJar.absolutePath}")
-        }
-    }
-}
