@@ -385,7 +385,6 @@ public class IconCache extends BaseIconCache {
                                 /* user = */ sectionKey.first,
                                 () -> duplicateIconRequests.get(0).launcherActivityInfo,
                                 mLauncherActivityInfoCachingLogic,
-                                c,
                                 /* usePackageIcon= */ false,
                                 /* useLowResIcons = */ sectionKey.second);
 
