@@ -17,6 +17,7 @@
 ** limitations under the License.
 */
 -->
+<!-- Tuned to match Blackview BvLauncher (com.blackview.launcher V3.0.0_20220226) -->
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:androidprv="http://schemas.android.com/apk/prv/res/android">
     <!-- The color tints to apply to the text and drag view when hovering
@@ -32,9 +33,15 @@
     <color name="spring_loaded_highlighted_panel_border_color">#FFF</color>
 
     <!-- Popup container -->
-    <color name="notification_icon_default_color">#757575</color> <!-- Gray 600 -->
+    <!-- BvLauncher: fixed notification / badge accent -->
+    <color name="notification_icon_default_color">#FFFE4621</color>
+    <color name="notification_dot_color">#FFFE4621</color>
 
     <color name="icon_background">#E0E0E0</color> <!-- Gray 300 -->
+
+    <!-- Brand accent (BvLauncher color3478F6) -->
+    <color name="bv_accent">#FF3478F6</color>
+    <color name="dialog_button_text_color">#FF3478F6</color>
 
     <color name="popup_color_primary_light">#FFF</color>
     <color name="popup_color_secondary_light">#F1F3F4</color>
@@ -66,7 +73,8 @@
     <color name="folder_preview_light">#F9F9F9</color>
     <color name="folder_preview_dark">#464746</color>
 
-    <color name="folder_dot_color">?attr/colorPrimary</color>
+    <!-- Prefer brand accent for folder dots to align with Bv accent -->
+    <color name="folder_dot_color">@color/bv_accent</color>
     <color name="folder_pagination_color_light">#ff006c5f</color>
     <color name="folder_pagination_color_dark">#ffbfebe3</color>
 
@@ -79,4 +87,10 @@
 
     <color name="workspace_accent_color_light">#ff8df5e3</color>
     <color name="workspace_accent_color_dark">#ff3d665f</color>
+
+    <!-- Page indicator (BvLauncher) -->
+    <color name="page_indicator_active_color">#FFFFFFFF</color>
+    <color name="page_indicator_inactive_color">#66FFFFFF</color>
+    <color name="page_indicator_dark_active_color">#FF1E1E1E</color>
+    <color name="page_indicator_dark_inactive_color">#661E1E1E</color>
 </resources>

@@ -22,7 +22,7 @@
     <dimen name="fastscroll_popup_text_size">24dp</dimen>
 
     <!-- Dynamic grid -->
-    <dimen name="dynamic_grid_icon_drawable_padding">4dp</dimen>
+    <dimen name="dynamic_grid_icon_drawable_padding">7dp</dimen>
 
     <!-- Hotseat -->
     <dimen name="dynamic_grid_hotseat_side_padding">16dp</dimen>

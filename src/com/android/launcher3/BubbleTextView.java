@@ -363,7 +363,8 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         boolean useTheme = mDisplay == DISPLAY_WORKSPACE || mDisplay == DISPLAY_FOLDER
                 || mDisplay == DISPLAY_TASKBAR;
         FastBitmapDrawable iconDrawable = info.newIcon(getContext(), useTheme);
-        mDotParams.color = IconPalette.getMutedColor(iconDrawable.getIconColor(), 0.54f);
+        // BvLauncher match: fixed notification dot color instead of muted icon color
+        mDotParams.color = getContext().getColor(R.color.notification_dot_color);
 
         setIcon(iconDrawable);
         applyLabel(info);

@@ -1,0 +1,93 @@
+name: Build & Validate
+
+on:
+  push:
+    branches: [bv-launcher-ui, main]
+  pull_request:
+    branches: [bv-launcher-ui, main]
+  workflow_dispatch:
+
+jobs:
+  validate-resources:
+    name: Validate resources & structure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxml2-utils
+
+      - name: XML well-formedness (values)
+        run: |
+          set -e
+          fail=0
+          for f in res/values/*.xml res/values-land/*.xml; do
+            [ -f "$f" ] || continue
+            if ! xmllint --noout "$f" 2>/tmp/xmllint.err; then
+              echo "INVALID: $f"
+              cat /tmp/xmllint.err
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Check BvLauncher key resources present
+        run: |
+          set -e
+          echo "== colors =="
+          grep -q 'name="notification_dot_color"' res/values/colors.xml
+          grep -q '#FFFE4621\|#fffe4621\|#FE4621' res/values/colors.xml
+          grep -q 'name="bv_accent"' res/values/colors.xml
+          grep -q '#FF3478F6\|#ff3478f6\|#3478F6' res/values/colors.xml
+          echo "== dimens =="
+          grep -q 'dynamic_grid_icon_drawable_padding">8dp' res/values/dimens.xml
+          grep -q 'page_indicator_dot_size">9dp' res/values/dimens.xml
+          grep -q 'folder_content_bg_corner">30dp' res/values/dimens.xml
+          grep -q 'default_icon_bitmap_size">56dp' res/values/dimens.xml
+          echo "== code =="
+          grep -q 'R.color.notification_dot_color' src/com/android/launcher3/BubbleTextView.java
+          echo "All BvLauncher marker checks passed."
+
+      - name: Theme transparency check
+        run: |
+          set -e
+          grep -q 'windowShowWallpaper">true' res/values/styles.xml
+          grep -q 'windowBackground">@android:color/transparent' res/values/styles.xml
+          grep -q 'statusBarColor">#00000000' res/values/styles.xml
+          echo "Theme transparency OK."
+
+  # Full APK requires AOSP tree (framework stubs, iconloaderlib, sysui_shared).
+  # This job documents the expected integration path and fails softly with guidance.
+  aosp-build-notes:
+    name: AOSP build guidance
+    runs-on: ubuntu-latest
+    needs: validate-resources
+    steps:
+      - name: How to produce the APK
+        run: |
+          cat << 'MSG'
+          This repository is the platform package `packages/apps/Launcher3`.
+
+          Standalone `./gradlew assemble` in this tree expects:
+            - ANDROID_TOP with prebuilts (framework intermediates, androidx m2)
+            - iconloaderlib and SharedLibWrapper modules
+            - for Quickstep: sysui_shared.jar
+
+          Recommended production build (inside AOSP tree, Android 12 / S branch):
+
+            # After placing/syncing this app at packages/apps/Launcher3
+            source build/envsetup.sh
+            lunch <target>
+            mma Launcher3QuickStep   # or Launcher3 / Launcher3Go as needed
+
+          Artifacts:
+            out/target/product/<device>/system_ext/priv-app/Launcher3QuickStep/*.apk
+            (path may vary by product config)
+
+          CI here validates BvLauncher UI resource/code markers only.
+          Full APK CI needs a self-hosted runner with an AOSP 12 checkout, or
+          a vendored prebuilt SDK + iconloaderlib snapshot (not included).
+          MSG
