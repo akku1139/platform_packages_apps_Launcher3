@@ -93,3 +93,11 @@ Matching appearance for the home grid / folders / indicators / colors can start 
 4. Verify wallpaper + system bar transparency.
 5. Build and compare side-by-side with the original APK on a device/emulator.
 6. Incrementally add blur / left-screen if desired.
+
+## Additional non-privileged UI wiring (follow-up)
+
+- Folder background corner radius uses `folder_content_bg_corner` (30dp) via `round_rect_folder.xml`
+- Folder name `textSize` = `folder_name_text_size` (20sp)
+- Workspace page indicator line uses `page_indicator_*_active_color`
+- Folder page dots (`folderPaginationColor`) use brand `bv_accent`
+- Deep shortcut icon size 24dp (Bv match)

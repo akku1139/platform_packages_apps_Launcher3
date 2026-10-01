@@ -124,8 +124,16 @@ public class WorkspacePageIndicator extends View implements Insettable, PageIndi
         mLineHeight = res.getDimensionPixelSize(R.dimen.workspace_page_indicator_line_height);
 
         boolean darkText = Themes.getAttrBoolean(mLauncher, R.attr.isWorkspaceDarkText);
-        mActiveAlpha = darkText ? BLACK_ALPHA : WHITE_ALPHA;
-        mLinePaint.setColor(darkText ? Color.BLACK : Color.WHITE);
+        // BvLauncher: use resource page-indicator colors instead of pure black/white
+        int color = darkText
+                ? res.getColor(R.color.page_indicator_dark_active_color)
+                : res.getColor(R.color.page_indicator_active_color);
+        mActiveAlpha = Color.alpha(color);
+        if (mActiveAlpha == 0 || mActiveAlpha == 255) {
+            // active colors are opaque; keep AOSP-like visibility alphas when fully opaque
+            mActiveAlpha = darkText ? BLACK_ALPHA : WHITE_ALPHA;
+        }
+        mLinePaint.setColor(0xFF000000 | (color & 0x00FFFFFF));
     }
 
     @Override
