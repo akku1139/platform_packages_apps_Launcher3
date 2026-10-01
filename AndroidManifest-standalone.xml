@@ -65,7 +65,7 @@
         android:largeHeap="@bool/config_largeHeap"
         android:restoreAnyVersion="true"
         android:supportsRtl="true"
-        android:name="com.android.launcher3.LauncherApplication">
+        >
 
 
         <!-- Intent received when a session is committed -->
