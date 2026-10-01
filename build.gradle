@@ -21,13 +21,16 @@ android {
         release {
             def ksPath = System.getenv("SIGNING_KEYSTORE_PATH")
             def storePass = System.getenv("SIGNING_STORE_PASSWORD")
-            def keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+            def aliasName = System.getenv("SIGNING_KEY_ALIAS")
             def keyPass = System.getenv("SIGNING_KEY_PASSWORD")
-            if (ksPath != null && file(ksPath).exists() && storePass != null) {
-                storeFile file(ksPath)
-                storePassword storePass
-                keyAlias keyAlias ?: "bvlauncher"
-                keyPassword keyPass ?: storePass
+            if (ksPath != null && storePass != null && !ksPath.isEmpty()) {
+                def ksFile = file(ksPath)
+                if (ksFile.exists()) {
+                    storeFile ksFile
+                    storePassword storePass
+                    keyAlias (aliasName != null && !aliasName.isEmpty() ? aliasName : "bvlauncher")
+                    keyPassword (keyPass != null && !keyPass.isEmpty() ? keyPass : storePass)
+                }
             }
         }
     }
@@ -36,7 +39,6 @@ android {
         debug {
             minifyEnabled false
             versionNameSuffix '-debug'
-            // Prefer release keystore when available so debug installs share the same cert
             if (signingConfigs.release.storeFile != null) {
                 signingConfig signingConfigs.release
             }
