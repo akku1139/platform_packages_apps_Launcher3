@@ -9,7 +9,7 @@ android {
     compileSdk 31
 
     defaultConfig {
-        applicationId 'com.android.launcher3'
+        applicationId 'io.github.akku1139.launcher3'
         minSdk 26
         targetSdk 31
         versionCode 300220226
@@ -17,17 +17,39 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
+    signingConfigs {
+        release {
+            def ksPath = System.getenv("SIGNING_KEYSTORE_PATH")
+            def storePass = System.getenv("SIGNING_STORE_PASSWORD")
+            def keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+            def keyPass = System.getenv("SIGNING_KEY_PASSWORD")
+            if (ksPath != null && file(ksPath).exists() && storePass != null) {
+                storeFile file(ksPath)
+                storePassword storePass
+                keyAlias keyAlias ?: "bvlauncher"
+                keyPassword keyPass ?: storePass
+            }
+        }
+    }
+
     buildTypes {
         debug {
             minifyEnabled false
             versionNameSuffix '-debug'
+            // Prefer release keystore when available so debug installs share the same cert
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            }
         }
         release {
             minifyEnabled false
             shrinkResources false
-            // CI uses debug keystore for release artifact (unsigned-style test builds)
-            signingConfig signingConfigs.debug
             versionNameSuffix '-release'
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
         }
     }
 

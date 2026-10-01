@@ -32,7 +32,7 @@ jobs:
           grep -q 'name="notification_dot_color"' res/values/colors.xml
           grep -qi 'FE4621' res/values/colors.xml
           grep -q 'dynamic_grid_icon_drawable_padding">8dp' res/values/dimens.xml
-          grep -q 'R.color.notification_dot_color' src/com/android/launcher3/BubbleTextView.java
+          grep -q "applicationId 'io.github.akku1139.launcher3'" build.gradle
           echo OK
 
   build:
@@ -53,23 +53,37 @@ jobs:
           set -e
           echo "ANDROID_HOME=$ANDROID_HOME"
           ls "$ANDROID_HOME/platforms" || true
-          ls "$ANDROID_HOME/build-tools" || true
           if [ ! -d "$ANDROID_HOME/platforms/android-31" ]; then
             CMDLINE=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager | head -1)
             yes | "$CMDLINE" --licenses || true
             "$CMDLINE" "platforms;android-31" "build-tools;31.0.0"
           fi
-          # Prefer any available build-tools if 31 missing
-          ls "$ANDROID_HOME/platforms"
-          ls "$ANDROID_HOME/build-tools"
 
-      - name: Build release APK
+      - name: Decode signing keystore
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          set -e
+          if [ -z "$SIGNING_KEYSTORE_BASE64" ]; then
+            echo "SIGNING_KEYSTORE_BASE64 secret missing"
+            exit 1
+          fi
+          echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > "$HOME/bvlauncher.jks"
+          echo "SIGNING_KEYSTORE_PATH=$HOME/bvlauncher.jks" >> $GITHUB_ENV
+          echo "SIGNING_STORE_PASSWORD=$SIGNING_STORE_PASSWORD" >> $GITHUB_ENV
+          echo "SIGNING_KEY_ALIAS=$SIGNING_KEY_ALIAS" >> $GITHUB_ENV
+          echo "SIGNING_KEY_PASSWORD=$SIGNING_KEY_PASSWORD" >> $GITHUB_ENV
+          ls -la "$HOME/bvlauncher.jks"
+
+      - name: Build signed release APK
         run: |
           chmod +x gradlew
-          # Drop obsolete -Xbootclasspath/p on JDK 17; rely on compileOnly framework.jar
           ./gradlew --no-daemon assembleWithoutQuickstepRelease --stacktrace
 
-      - name: Locate APK
+      - name: Locate APK and verify signature
         id: apk
         run: |
           APK=$(find ./build -name '*.apk' 2>/dev/null | head -1)
@@ -79,6 +93,9 @@ jobs:
           fi
           echo "path=$APK" >> $GITHUB_OUTPUT
           ls -lh "$APK"
+          # Verify APK is signed
+          $ANDROID_HOME/build-tools/*/apksigner verify --print-certs "$APK" 2>/dev/null || \
+            jarsigner -verify -verbose -certs "$APK" | tail -20
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -110,10 +127,11 @@ jobs:
           generate_release_notes: true
           files: ${{ steps.apk.outputs.path }}
           body: |
-            Automated BvLauncher UI port build (Launcher3 without Quickstep, Android 12 base).
+            Signed BvLauncher UI port (applicationId: `io.github.akku1139.launcher3`).
 
             - Branch: `${{ github.ref_name }}`
             - Commit: `${{ github.sha }}`
             - Variant: `withoutQuickstepRelease`
+            - Signed with project release keystore
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

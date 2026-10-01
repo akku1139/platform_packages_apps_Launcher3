@@ -59,3 +59,13 @@ GitHub Actions (`.github/workflows/build.yml`):
 - Hide-app / frozen-app / hybrid hotseat controllers
 
 Those need additional Java packages beyond resource theming.
+
+## Application ID & signing
+
+- **applicationId**: `io.github.akku1139.launcher3` (Java package remains `com.android.launcher3`)
+- Release APKs are signed in CI using GitHub Actions secrets:
+  - `SIGNING_KEYSTORE_BASE64`
+  - `SIGNING_STORE_PASSWORD`
+  - `SIGNING_KEY_ALIAS`
+  - `SIGNING_KEY_PASSWORD`
+
